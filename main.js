@@ -1,4 +1,3 @@
-// import { clearCash } from './execute';
 const loginInput = document.getElementById('login');
 const passwordInput = document.getElementById('password');
 const customerIdInput = document.getElementById('customerId');
@@ -93,13 +92,34 @@ function loadInputsFromLocalStorage() {
 
 function renderAccounts(accounts) {
     const form = document.getElementById('login-form');
+    const currentUl = document.querySelector('ul');
+    if (currentUl) {
+        currentUl.remove();
+    }
+
     let ul = document.createElement('ul');
     ul.innerHTML = `
         ${accounts.map(account => `
-            <li id="${account.customerId}">${account.name} (id-${account.customerId})<span class="remove" id="${account.customerId}">ㅤX</span></li>
+            <li id="${account.customerId}">${account.name} (id-${account.customerId})
+                <span class="remove" data-id="${account.customerId}">ㅤX</span>
+            </li>
         `).join('')}
     `
-    form.after(ul)
+    form.after(ul);
+
+    // Добавление обработчика событий к каждому элементу span.remove
+    document.querySelectorAll('.remove').forEach(span => {
+        span.addEventListener('click', function() {
+            const idToRemove = this.getAttribute('data-id');
+
+            accounts = accounts.filter(account => account.customerId !== idToRemove);
+
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+
+            // Перерисовка списка аккаунтов
+            renderAccounts(accounts);
+        });
+    });
 }
 
 // Очистка куки и сессии
