@@ -38,11 +38,18 @@ function pasteData(login, password) {
 }
 
 // Получаем данные из полей расширения
-async function getData() {
+async function getData(account) {
     const tab = await getCurrentTab();
+    let login;
+    let password;
 
-    const login = loginInput.value;
-    const password = passwordInput.value + customerIdInput.value;
+    if (account.customerId) {
+        login = account.login;
+        password = account.password + account.customerId;
+    } else {
+        login = loginInput.value;
+        password = passwordInput.value + customerIdInput.value;
+    }
 
     chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -86,7 +93,6 @@ function loadInputsFromLocalStorage() {
     if (storedAccounts) {
         const accounts = JSON.parse(storedAccounts);
         renderAccounts(accounts);
-        console.log(accounts)
     }
 }
 
@@ -100,16 +106,21 @@ function renderAccounts(accounts) {
     let ul = document.createElement('ul');
     ul.innerHTML = `
         ${accounts.map(account => `
-            <li id="${account.customerId}">${account.name} (id-${account.customerId})
+            <li class="account" data-id="${account.customerId}">${account.name} (id-${account.customerId})
                 <span class="remove" data-id="${account.customerId}">ㅤX</span>
             </li>
         `).join('')}
     `
     form.after(ul);
 
+    addEvents(accounts);
+}
+
+function addEvents(accounts) {
     // Добавление обработчика событий к каждому элементу span.remove
     document.querySelectorAll('.remove').forEach(span => {
-        span.addEventListener('click', function() {
+        span.addEventListener('click', function(event) {
+            event.stopPropagation();
             const idToRemove = this.getAttribute('data-id');
 
             accounts = accounts.filter(account => account.customerId !== idToRemove);
@@ -118,6 +129,16 @@ function renderAccounts(accounts) {
 
             // Перерисовка списка аккаунтов
             renderAccounts(accounts);
+        });
+    });
+
+    // Добавление обработчика событий к каждому элементу li.account
+    document.querySelectorAll('.account').forEach(li => {
+        li.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+
+            const getAccount = accounts.find(account => account.customerId === id);
+            getData(getAccount);
         });
     });
 }
